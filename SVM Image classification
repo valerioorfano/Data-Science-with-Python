@@ -1,4 +1,4 @@
-# SVM algorithm to predict face recognition.
+# SVM for face classification.
 import sklearn as sk
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,7 +19,6 @@ def print_face(images,target,n):
     fig=plt.figure(figsize=(12,12))
     for i in range(n):
         p = fig.add_subplot(20,20,i+1,xticks=[],yticks=[])
-#        p.imshow(images[i],cmap=plt.cm.bone)
         p.imshow(images[i], cmap='gray')
         p.text(0,15,str(i), fontsize=9)
         p.text(0,60,str(target[i]), fontsize=9)
