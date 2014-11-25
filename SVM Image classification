@@ -1,0 +1,77 @@
+# SVM algorithm to predict face recognition.
+import sklearn as sk
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.cross_validation import train_test_split
+from sklearn.svm import SVC
+from sklearn.datasets import fetch_olivetti_faces
+from sklearn.cross_validation import cross_val_score,KFold
+from sklearn import metrics
+from scipy.stats import sem
+faces = fetch_olivetti_faces()
+X = faces.data
+y = faces.target
+images = faces.images
+#print X.shape
+#print np.mean(X),np.max(X), np.min(X)
+# data do not require standardization
+def print_face(images,target,n):
+    fig=plt.figure(figsize=(12,12))
+    for i in range(n):
+        p = fig.add_subplot(20,20,i+1,xticks=[],yticks=[])
+#        p.imshow(images[i],cmap=plt.cm.bone)
+        p.imshow(images[i], cmap='gray')
+        p.text(0,15,str(i), fontsize=9)
+        p.text(0,60,str(target[i]), fontsize=9)
+
+print_face(images,y,40)
+print "======================================================================="
+print "Prediction people images"
+print "======================================================================="
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.33,random_state=44)
+#-----------------------------------------------
+clf_linear =SVC(kernel='linear')
+
+def cross_validation(clf,X,y,K):
+    cv = KFold(len(y),K,shuffle=True,random_state=42)
+    score=cross_val_score(clf,X,y, cv=cv)
+    print 'Mean Score Accuracy: {0:.3f} +/- {1:.3f} '.format(np.mean(score),sem(score))
+    
+cross_validation(clf_linear,X_train,y_train,5)
+#Mean Score Linear: 0.892 +/- 0.018 
+    
+def prediction(clf,X_train,X_test,y_train,y_test):
+    clf.fit(X_train,y_train)
+    print "Accuracy on Training data: {:.3f}".format(clf.score(X_train,y_train))
+    print "Accuracy on Testing data: {:.3f}".format(clf.score(X_test,y_test))
+    y_pred = clf.predict(X_test)
+    print "Classification Report :"
+    print metrics.classification_report(y_test, y_pred)
+    print "Confusion Matrix :"
+    print metrics.confusion_matrix(y_test, y_pred)
+    
+prediction(clf_linear,X_train,X_test,y_train,y_test)    
+#----------------------------------------------
+# Let's try to predict people with glasses from people wothout glasses.
+# The following ranges refer index of images for people with glasses
+print "                                                                 "
+print "======================================================================="
+print "Prediction people with/without glasses"
+print "======================================================================="
+clf_linear_glasses =SVC(kernel='linear')
+glasses = [(10, 19), (30, 32), (37, 38), (50, 59), (63, 64),(69, 69), (120, 121), (124, 129), (130, 139), (160, 161),(164, 169), (180, 182), (185, 185), (189, 189), (190, 192),
+      (194, 194), (196, 199), (260, 269), (270, 279), (300, 309),
+      (330, 339), (358, 359), (360, 369)]
+
+def ppl_glasses(segments):
+    y = np.zeros(len(faces.target))      
+    for start,end in segments:
+        y[start:end + 1] = True
+    return y
+                
+y_glasses = ppl_glasses(glasses)        
+X_train,X_test,y_glasses_train,y_glasses_test = train_test_split(X,y_glasses,test_size=0.33,random_state=44)        
+
+cross_validation(clf_linear_glasses,X_train,y_glasses_train,5)
+#Mean Score Linear Glasses: 0.967 +/- 0.020 
+prediction(clf_linear_glasses,X_train,X_test,y_glasses_train,y_glasses_test)    
