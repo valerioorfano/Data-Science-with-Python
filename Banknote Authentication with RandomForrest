@@ -1,0 +1,51 @@
+#Banknote authenitication 
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+banknote = pd.read_csv("C:\\Users\\Administrator\\Desktop\\banknote.txt",sep=",", header=0, names = ['variance','skewness','curtosis','entropy','class'])
+#banknote2 = pd.read_csv("C:\\Users\\Administrator\\Desktop\\banknote.txt",sep=",", header=None)
+#check for null values
+nulling = np.sum([1 for x in banknote if pd.isnull(x)])
+y = banknote["class"]
+X = banknote.drop("class", axis=1)
+#0  No null values
+#There are no categorical variables to be converted into numerical
+from sklearn.ensemble import RandomForestClassifier 
+from sklearn import metrics
+from sklearn.cross_validation import  train_test_split,LeaveOneOut
+from scipy.stats import sem
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size = 0.25, random_state = 42)
+clf = RandomForestClassifier(n_estimators=10, criterion='entropy')
+clf.fit(X_train,y_train)
+def x_validation(X,y,clf):
+    loo = LeaveOneOut(X.shape[0])
+    scores = np.zeros(X.shape[0])
+    for train_i, test_i in loo:
+        X_train_cv, y_train_cv = X[train_i], y[train_i] 
+        X_test_cv, y_test_cv = X[test_i], y[test_i]
+        clf.fit(X_train_cv, y_train_cv)
+        y_pred = clf.predict(X_test_cv)
+        scores[test_i] = metrics.accuracy_score(y_test_cv, y_pred)
+    print "Score Mean: {0:.3f} +/- {0:.3f}".format(np.mean(scores), sem(scores)) 
+x_validation(X_train,y_train,clf)    
+#Score Mean: 0.993 +/- 0.993
+x_validation(X_test,y_test,clf)    
+#Score Mean: 0.985 +/- 0.985
+def metric(X,y,clf):
+    global cm
+    y_pred = clf.predict(X_test)
+    cr = metrics.classification_report(y_test, y_pred)
+    cm = metrics.confusion_matrix(y_test, y_pred)
+    print cr
+    print cm
+
+metric(X_test,y_test,clf)
+
+
+def plot_cm(cm):
+    plt.imshow(cm,cmap=plt.cm.binary, interpolation='nearest')
+    plt.colorbar()
+    plt.xlabel('true value')
+    plt.ylabel('predicted value')
+    
+plot_cm(cm)    
