@@ -1,1 +1,97 @@
-tbd
+#The problem we would like to solve is to determine if a Titanic's passenger would have survived, given her age, passenger class, and sex.
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.pylab as pl
+titanic = pd.read_csv("C:\\Users\\Administrator\\Desktop\\titanic.txt", header=0)
+#Select attributes age, class, sex
+X = titanic[["age","pclass","sex"]]
+#Let's check whether there are missing values
+#Let's cpunt the number of missing values
+np.sum([1 for x in X.columns.values for j in xrange(X.shape[0]) if pd.isnull(X.ix[j,x])])
+#We decide to replace missing age values with the age mean
+temp = [x for x in ~(pd.isnull(X.ix[:,"age"]))]
+X_mean = np.mean(X.ix[temp,"age"].astype(np.int))
+X_mean = round(X_mean)
+X.ix[np.invert(temp),"age"] = X_mean
+# We need to convert categorical attribute like sex into numerical attribute
+#Sex = Male => 1   Sex = Female => 0
+temp = [x for x in (X.ix[:,"sex"])=="male"]
+temp += np.zeros(len(temp))
+temp = [np.int(x) for x in temp]
+X["sex"] = temp
+# We need to convert categorical attribute like class into numerical attribute
+from sklearn.preprocessing import LabelEncoder
+enc = LabelEncoder()
+label_encoder = enc.fit(X["pclass"])
+nrows = X.shape[0]
+classes = label_encoder.classes_
+t = label_encoder.transform(X["pclass"]).reshape(nrows,1)
+from sklearn.preprocessing import OneHotEncoder
+enc = OneHotEncoder()
+one_hot_encoder = enc.fit(t)
+#OneHotEncoder creates the three new attributes that are added to the X dataframe
+new_features = one_hot_encoder.transform(t)
+new_features = new_features.toarray().astype(int)
+df = pd.DataFrame(new_features)
+df.columns = classes
+# Unify the dataframe
+new_df = pd.concat([X,df],axis=1)
+#Remove pclass column
+new_df = new_df.drop("pclass",1)
+from sklearn.cross_validation import train_test_split
+y = pd.DataFrame(titanic.survived)
+df_train, df_test, y_train, y_test = train_test_split(new_df,y,test_size = 0.33, random_state = 42)
+from sklearn import tree
+clf = tree.DecisionTreeClassifier(criterion="entropy")
+clf.fit(df_train,y_train)
+import pydot, StringIO
+dot_data = StringIO.StringIO()
+tree.export_graphviz(clf,out_file=dot_data,feature_names=new_df.columns)
+graph = pydot.graph_from_dot_data(dot_data.getvalue())
+#graph.write_png('graph.png')
+#print dot_data.getvalue()
+from sklearn import metrics
+from scipy.stats import sem
+def print_conf_matrix(cm):
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        cax = ax.matshow(cm)
+        print cm , "\n"
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("True")
+        fig.colorbar(cax)
+        plt.show()
+    
+def metric(X,y,clf,show_accuracy = True, show_classification_report = True,show_confusion_matrix = True):
+    y_pred = clf.predict(X)
+    if show_accuracy:
+        print "Accuracy: {0:.3f}".format(metrics.accuracy_score(y,y_pred))
+    if show_classification_report:
+        print "classification report "
+        print metrics.classification_report(y,y_pred) , "\n"
+    if show_confusion_matrix:
+        print "confusion matrix " 
+        print_conf_matrix(metrics.confusion_matrix(y,y_pred, labels=np.array([0,1])
+))
+
+metric (df_train,y_train,clf)
+#Accuracy: 0.861  for training data
+metric (df_test,y_test,clf)
+#Accuracy: 0.861  for testing data. As expected a little lower.
+#The best metric is the cross validation matrix        
+from sklearn.cross_validation import cross_val_score, LeaveOneOut
+#def cross_validation(X,y,clf):
+def x_validation(X,y,clf):
+    loo = LeaveOneOut(X.shape[0])
+    scores = np.zeros(X.shape[0])
+    for train_index, test_index in loo:
+        X_train_cv, X_test_cv = X[train_index],X[test_index]
+        y_train_cv, y_test_cv = y[train_index],y[test_index]        
+        clf = clf.fit(X_train_cv,y_train_cv)        
+        y_pred = clf.predict(X_test_cv)
+        scores[test_index] = metrics.accuracy_score(y_test_cv.astype(int), y_pred.astype(int))        
+    print "Mean Score {0:.3f} +/- {1:.3f}".format(np.mean(scores),sem(scores))            
+            
+x_validation(df_train,y_train,clf)            
+#Mean Score 0.797 +/- 0.014
