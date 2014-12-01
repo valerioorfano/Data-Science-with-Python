@@ -1,0 +1,32 @@
+import numpy as np
+numpy.set_printoptions(threshold='nan')
+import pandas as pd
+import matplotlib.pyplot as plt
+um = pd.read_csv("C:\Users\Administrator\Desktop\usermodeling.txt",header=0,delim_whitespace=True)
+y = um["UNS"]
+data = um.ix[:,0:-1]
+data = np.array(data)
+nrow, ncol = data.shape
+X =np.array([float(j.replace(',','.')) for i in data for j in i ])
+X.shape = (nrow,ncol)
+# Data do not require standardization
+classe = []
+classe = np.unique(y)
+#We know by default the dataset contains 4 different classes
+from sklearn.decomposition import PCA
+pca = PCA(n_components=2)
+X_reduced = pca.fit(X).transform(X)
+
+from sklearn import cluster
+clf = cluster.KMeans(n_clusters=4,init='k-means++',random_state=42)
+k_means = clf.fit(X_reduced)
+#print "Reduced dataset shape:", X_train_reduced.shape
+colornumber = pd.Series(np.linspace(0,1,4), index=classe)
+color = []
+for i in y:
+    color.append(colornumber[i])
+fig = plt.figure(figsize=(12,12))
+ax = fig.add_subplot(111)
+ax.scatter(X_reduced[:, 0], X_reduced[:, 1], color=plt.cm.RdYlBu(color))
+mu = np.round(k_means.cluster_centers_, decimals=2)
+ax.scatter(mu[:,0],mu[:,1],marker='x', s = 60,color='black')
