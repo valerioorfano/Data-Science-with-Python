@@ -3,7 +3,7 @@ import numpy as np
 numpy.set_printoptions(threshold='nan')
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.cluster import KMeans,AffinityPropagation
+from sklearn.cluster import KMeans,MeanShift
 from sklearn.preprocessing import scale 
 wine = pd.read_csv("C:\Users\Administrator\Desktop\wine.data",header=None,sep=",", names=["Class","Alcohol","Malic_acid","Ash","Alcalinity_ash","Magnesium","Total_phenols","Flavanoids","Nonflavanoid_phenols","Proanthocyanins","Color_intensity","Hue","OD280_OD315","Proline"])
 y = wine["Class"]
@@ -16,7 +16,7 @@ from sklearn.decomposition import PCA
 pca = PCA(n_components=2)
 X_reduced = pca.fit(X).transform(X)
 
-def show_wine (X,y,centers=[]):
+def show_wine (X,y,centers=[],key=""):
     plt.figure(figsize=(10,10))
     for i in range(len(y)):
         if y[i]==1:
@@ -27,13 +27,13 @@ def show_wine (X,y,centers=[]):
             c3 = plt.scatter(X[i, 0], X[i, 1], marker='*',color='b')
         if centers != []:
             c4 = plt.scatter(centers[:, 0], centers[:, 1], marker='o',s = 60,color='rgb')
-    plt.legend([c1,c2,c3],['Cluster1','Cluster2','Cluster3'])        
-    plt.title('Wine dataset with 3 clusters and known outcomes')
+        plt.title('Wine dataset with 3 clusters and known outcomes ' + key)
 print "======================================================================="
 show_wine(X_reduced,y)
 
-kmeans = KMeans(n_clusters=3,init='k-means++',random_state=42)
-kmeans.fit(X_reduced)
-show_wine(X_reduced,kmeans.labels_ + 1, kmeans.cluster_centers_)
-print "Cluster Centers"
-print kmeans.cluster_centers_
+
+method = {KMeans:KMeans(n_clusters=3,init='k-means++',random_state=42),MeanShift:MeanShift()}
+for i in method:
+    clustering = method.get(i)
+    clustering.fit(X_reduced)
+    show_wine(X_reduced,clustering.labels_ + 1, clustering.cluster_centers_,str(i))
