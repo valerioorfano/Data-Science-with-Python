@@ -1,0 +1,42 @@
+# Clustering of wine quality
+import numpy as np
+numpy.set_printoptions(threshold='nan')
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import scale 
+wine = pd.read_csv("C:\Users\Administrator\Desktop\wine.data",header=None,sep=",", names=["Class","Alcohol","Malic_acid","Ash","Alcalinity_ash","Magnesium","Total_phenols","Flavanoids","Nonflavanoid_phenols","Proanthocyanins","Color_intensity","Hue","OD280_OD315","Proline"])
+y = wine["Class"]
+data = wine.ix[:,1:-2]
+data = np.array(data)
+#Standardization
+X = scale(data)
+classe = []
+classe = np.unique(y)
+#We know the dataset contains 3 different classes of wine: 1,2,3
+from sklearn.decomposition import PCA
+pca = PCA(n_components=2)
+X_reduced = pca.fit(X).transform(X)
+
+def show_wine (X,y,centers=[]):
+    plt.figure(figsize=(10,10))
+    for i in range(len(y)):
+        if y[i]==1:
+            c1 = plt.scatter(X[i, 0], X[i, 1], marker='o',color='r')
+        elif y[i]==2:
+            c2 = plt.scatter(X[i, 0], X[i, 1], marker='<',color='g')
+        elif y[i]==3:
+            c3 = plt.scatter(X[i, 0], X[i, 1], marker='*',color='b')
+        if centers != []:
+            c4 = plt.scatter(centers[:, 0], centers[:, 1], marker='o',s = 60,color='rgb')
+    plt.legend([c1,c2,c3],['Cluster1','Cluster2','Cluster3'])        
+    plt.title('Wine dataset with 3 clusters and known outcomes')
+print "======================================================================="
+print "Cluster Centers"
+print kmeans.cluster_centers_
+show_wine(X_reduced,y)
+
+kmeans = KMeans(n_clusters=3,init='k-means++',random_state=42)
+kmeans.fit(X_reduced)
+show_wine(X_reduced,kmeans.labels_ + 1, kmeans.cluster_centers_)
+print "======================================================================="
