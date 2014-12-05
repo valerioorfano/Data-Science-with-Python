@@ -1,0 +1,63 @@
+# Wine quality using linear regression
+import pandas as pd
+import numpy as np
+df = pd.read_csv("C:\Users\Administrator\Desktop\wine.data", header=None)
+df.info
+#There are no missing values. good!
+print "============================================================"
+print "Wine quality using Linear Regression"
+print "============================================================"
+print "                             "
+from sklearn.linear_model import LinearRegression
+y = df.ix[:,0]
+X = df.ix[:,1:]
+from sklearn.cross_validation import KFold,cross_val_score,train_test_split
+from sklearn import metrics
+clf = LinearRegression()
+X_train, X_test,y_train,y_test = train_test_split(X,y,test_size=0.25,random_state=42)
+
+def x_validation(X,y,clf):
+    cv = KFold(X.shape[0],n_folds=5)
+    score = cross_val_score(clf,X,y,cv=cv, scoring ='r2')
+    print "Cross_Validation R2 Mean : {0:.3f}".format(np.mean(score,axis=0))
+#cross validation over training data    
+x_validation(X_train,y_train,clf)    
+#metrics over testing data    
+def test_score(X_train,y_train,X_test,y_test):
+    clf.fit(X_train,y_train)
+    y_pred = clf.predict(X_test)
+#    print np.array(zip(y_test.astype(int), y_pred))
+    print "R2 over Test Data: {0:.3f}".format(clf.score(X_test,y_test))
+
+test_score(X_train,y_train,X_test,y_test)    
+
+fig = plt.figure()
+ax = fig.add_subplot(211)
+clf.fit(X_train,y_train)
+y_pred = clf.predict(X_test)
+ax.scatter(y_test,y_pred)
+ax.set_xlabel("Observed values")
+ax.set_ylabel("Predicted values")
+
+
+print "============================================================"
+print "Wine quality using Stochastic Gradient Descent"
+print "============================================================"
+print "                             "
+from sklearn.linear_model import SGDRegressor
+from sklearn.preprocessing import StandardScaler
+clf_SGD = SGDRegressor(loss='squared_loss')
+#With SGD we need to standardize data
+X_train_N = StandardScaler().fit(X_train).transform(X_train)
+y_train_N = StandardScaler().fit(y_train).transform(y_train)   
+X_test_N = StandardScaler().fit(X_test).transform(X_test)
+y_test_N = StandardScaler().fit(y_test).transform(y_test)
+x_validation(X_train_N,y_train_N,clf_SGD)    
+test_score(X_train_N,y_train_N,X_test_N,y_test_N)    
+ax = fig.add_subplot(212)
+clf_SGD.fit(X_train_N,y_train_N)
+y_pred_N = clf_SGD.predict(X_test_N)
+ax.scatter(y_test_N,y_pred_N)
+ax.set_xlabel("Observed values")
+ax.set_ylabel("Predicted values")
+#Pratically we have got the same result
