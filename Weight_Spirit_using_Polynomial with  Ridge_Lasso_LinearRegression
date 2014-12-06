@@ -1,0 +1,74 @@
+# Measurements on the Weight of Distilled Spirits using polynomial regression
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+numpy.set_printoptions(threshold='nan')
+df = []
+f = open("C:\Users\Administrator\Desktop\spiritwt.dat",'r')
+line = f.read().split()
+for w in line:    
+    df = np.append(df,w)
+df = [float(x) for x in df]    
+df = np.array(df)
+df = df.reshape(df.shape[0]/3,3)    
+df = pd.DataFrame(df)
+X = df.iloc[:,0:2]
+y = df.iloc[:,-1]
+#We notice that chaning the temperature, the weight is not affected.
+#The relatinship between dilution and weight is polynomial
+#Let's focus on the relationshp between dilution and weight
+X = df.iloc[:,1]
+X_ = X.astype(float)
+y = y.astype(float)
+from sklearn.cross_validation import train_test_split
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.25, random_state=42)
+X = X.reshape(X.shape[0],1)
+X_train = X_train.reshape(X_train.shape[0],1)
+X_test = X_test.reshape(X_test.shape[0],1)
+y = y.reshape(y.shape[0],1)
+y_train = y_train.reshape(y_train.shape[0],1)
+y_test = y_test.reshape(y_test.shape[0],1)
+from sklearn.linear_model import Ridge, LinearRegression, Lasso
+from sklearn.preprocessing import PolynomialFeatures
+clf_OLS = LinearRegression()
+clf_Ridge = Ridge()
+clf_Lasso = Lasso()
+X = X.astype(int)
+plt.figure(figsize=(12,6))
+c = ['r','b','m']
+x = arange(0,100,1)
+x = x.reshape(x.shape[0],1)
+for degree,i in zip([2,3,10],c):
+    clf_Poly = PolynomialFeatures(degree)
+    X_poly = clf_Poly.fit_transform(X)
+    clf_OLS.fit(X_poly,y)
+    plt.ylim(2400,2800)
+    x_poly = clf_Poly.fit_transform(x)
+#   plt.scatter(X, y, marker ="o", c='w')
+    t = clf_OLS.predict(x_poly)
+    plt.scatter(x,t, marker='x',s = 60, c= (i))
+#We notice that magenta 'x' corresponding to the pynomial with degree =10 contains outliers, that means the polynomial is over-fittting 
+#Let's try with Ridge Regression
+#Ridge regression addresses some of the problems of Ordinary Least Squares by imposing a penalty on the size of coefficients. The ridge coefficients minimize a penalized residual sum of squares    
+plt.figure(figsize=(12,6))
+for degree,i in zip([2,3,10],c):
+    clf_Poly = PolynomialFeatures(degree)
+    X_poly = clf_Poly.fit_transform(X)
+    clf_Ridge.fit(X_poly,y)
+    plt.ylim(2400,2800)
+    x_poly = clf_Poly.fit_transform(x)
+#   plt.scatter(X, y, marker ="o", c='w')
+    z = clf_Ridge.predict(x_poly)
+    plt.scatter(x,z, marker='x',s = 60, c= (i))
+#Let's try with Lasso
+#The Lasso is a linear model that estimates sparse coefficients. It is useful in some contexts due to its tendency to prefer solutions with fewer parameter values, effectively reducing the number of variables upon which the given solution is dependent. For this reason, the Lasso and its variants are fundamental to the field of compressed sensing.
+plt.figure(figsize=(12,6))
+for degree,i in zip([2,3,10],c):
+    clf_Poly = PolynomialFeatures(degree)
+    X_poly = clf_Poly.fit_transform(X)
+    clf_Lasso.fit(X_poly,y)
+    plt.ylim(2400,2800)
+    x_poly = clf_Poly.fit_transform(x)
+#   plt.scatter(X, y, marker ="o", c='w')
+    w = clf_Lasso.predict(x_poly)
+    plt.scatter(x,w, marker='x',s = 60, c= (i))
