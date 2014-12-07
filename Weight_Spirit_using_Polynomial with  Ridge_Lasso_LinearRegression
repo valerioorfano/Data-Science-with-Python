@@ -46,10 +46,9 @@ for degree,i in zip([2,3,10],c):
     x_poly = clf_Poly.fit_transform(x)
 #   plt.scatter(X, y, marker ="o", c='w')
     t = clf_OLS.predict(x_poly)
-    plt.scatter(x,t, marker='x',s = 60, c= (i))
+    plt.plot(x,t, marker='x',lw=2, c= (i))
 #We notice that magenta 'x' corresponding to the pynomial with degree =10 contains outliers, that means the polynomial is over-fittting 
 #Let's try with Ridge Regression
-#Ridge regression addresses some of the problems of Ordinary Least Squares by imposing a penalty on the size of coefficients. The ridge coefficients minimize a penalized residual sum of squares    
 plt.figure(figsize=(12,6))
 for degree,i in zip([2,3,10],c):
     clf_Poly = PolynomialFeatures(degree)
@@ -59,9 +58,9 @@ for degree,i in zip([2,3,10],c):
     x_poly = clf_Poly.fit_transform(x)
 #   plt.scatter(X, y, marker ="o", c='w')
     z = clf_Ridge.predict(x_poly)
-    plt.scatter(x,z, marker='x',s = 60, c= (i))
+    plt.plot(x,z, marker='x',lw=2, c= (i))
+
 #Let's try with Lasso
-#The Lasso is a linear model that estimates sparse coefficients. It is useful in some contexts due to its tendency to prefer solutions with fewer parameter values, effectively reducing the number of variables upon which the given solution is dependent. For this reason, the Lasso and its variants are fundamental to the field of compressed sensing.
 plt.figure(figsize=(12,6))
 for degree,i in zip([2,3,10],c):
     clf_Poly = PolynomialFeatures(degree)
@@ -71,4 +70,6 @@ for degree,i in zip([2,3,10],c):
     x_poly = clf_Poly.fit_transform(x)
 #   plt.scatter(X, y, marker ="o", c='w')
     w = clf_Lasso.predict(x_poly)
-    plt.scatter(x,w, marker='x',s = 60, c= (i))
+    plt.plot(x,w, marker='x',lw=2, c= (i))
+
+#Lasso provides the best solution wit a curve non depending from errors/outliers
