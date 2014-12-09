@@ -1,0 +1,36 @@
+import pandas as pd
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.cross_validation import train_test_split
+from sklearn.metrics import classification_report
+numpy.set_printoptions(threshold='nan')
+from sklearn.pipeline import Pipeline
+from sklearn.grid_search import GridSearchCV 
+import multiprocessing
+data = pd.read_csv('C:\Users\Administrator\Desktop\\ad_data.csv',header=None)
+y = data[len(data.columns.values)-1]
+y = [1 if x == 'ad.' else 0 for x in y]
+y = np.array(y)
+X = data.iloc[:,0:1558]
+X.replace(to_replace=' *\?', value=-1, regex=True, inplace=True)
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.25, random_state=42)
+pipeline = Pipeline([('clf',DecisionTreeClassifier()),('rf',RandomForestClassifier(criterion='entropy'))])
+parameters = {'clf__criterion':('entropy','gini'),
+            'clf__max_depth': (150, 155, 160),
+           'clf__min_samples_split': (1, 2, 3),
+           'clf__min_samples_leaf': (1, 2, 3),
+           'rf__criterion':('entropy','gini'),
+           'rf__n_estimators':(5,10,20,50),
+           'rf__max_depth': (150, 200, 250),
+           'rf__min_samples_split': (1, 2, 3),
+           'rf__min_samples_leaf': (1, 2, 3)}
+gridsearch = GridSearchCV(pipeline,parameters, verbose=-1, scoring='f1')
+gridsearch.fit(X_train,y_train)
+#print "gridsearch best score {0:.3f}".format(gridsearch.               
+print "Best Score {0:.3f}".format(gridsearch.best_score_)               
+print "Best parameters set: ".format(gridsearch.best_estimator_.get_params())
+for param_name in sorted(parameters.keys()):
+    print param_name, gridsearch.best_params_[param_name]
+predictions = gridsearch.predict(X_test)
+print classification_report(y_test, predictions)
