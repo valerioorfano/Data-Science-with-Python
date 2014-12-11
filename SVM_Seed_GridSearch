@@ -1,0 +1,44 @@
+#SVM
+from sklearn import metrics
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.svm import SVC
+from sklearn import metrics
+from sklearn.preprocessing import scale
+from sklearn.datasets import fetch_mldata
+from sklearn.preprocessing import scale
+from sklearn.cross_validation import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.metrics import classification_report,confusion_matrix
+from sklearn.grid_search import GridSearchCV
+numpy.set_printoptions(threshold='nan')
+seeds = pd.read_csv("C:\Users\Administrator\Desktop\seeds_dataset.txt", header=None, delim_whitespace=True)
+data = seeds.iloc[:,0:7]
+y = seeds[7]
+X = scale(data)
+X_train,X_test,y_train,y_test = train_test_split(X,y,test_size=0.25, random_state=42)
+pipeline = Pipeline([('svm',SVC())])
+parameters = {'svm__kernel': ('linear','rbf'),
+'svm__gamma' : (0.01, 0.03, 0.1, 0.3, 1),
+'svm__C' : (0.1, 0.3, 1, 3, 10, 30),
+}
+gridsearch = GridSearchCV(pipeline,parameters,verbose=1,scoring = 'f1')
+gridsearch.fit(X_train,y_train)
+print "Best f1 score {0:.3f}".format(gridsearch.best_score_)
+print "============================================"
+best_params = gridsearch.best_estimator_.get_params()
+for param in parameters.keys():
+    print "parameters and values: %s  %r" % (param, best_params[param])
+#parameters and values: svm__C  10
+#parameters and values: svm__kernel  rbf
+#parameters and values: svm__gamma  0.01
+predictions = gridsearch.predict(X_test)
+print classification_report(y_test, predictions)    
+cm = confusion_matrix(y_test, predictions)  
+print cm
+plt.imshow(cm,cmap=plt.cm.binary, interpolation='nearest')
+plt.colorbar()
+plt.xlabel('true value')
+plt.ylabel('predicted value')
+plt.show()
