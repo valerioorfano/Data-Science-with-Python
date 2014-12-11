@@ -8,27 +8,34 @@ from sklearn import metrics
 from sklearn.preprocessing import scale
 from sklearn.datasets import load_digits
 from sklearn.decomposition import PCA 
+numpy.set_printoptions(threshold='nan')
 digits = load_digits()
 #In order to use K-Means we need to standardize the data
 X = scale(digits.data)
-silhouette = []    
-K = range(1,20)
+K = range(2,15)
 for j in ('k-means++','random'):
     meandistortions = []    
+    silhouette = []    
     for k in K:
         kmeans = KMeans(n_clusters=k, init=j).fit(X)
         meandistortions.append(np.sum(np.min(cdist(X,kmeans.cluster_centers_,'euclidean'),axis=1))/ X.shape[0])  
+        silhouette.append(metrics.silhouette_score(X, kmeans.labels_, metric='euclidean'))
     plt.figure(figsize=(6,6))
     plt.plot(K,meandistortions, 'bx-')
     plt.xlabel("K")
     plt.xticks([x for x in range(1,20)])
     plt.ylabel("Mean Distortion")
     plt.title("Selecting K using elbow method " + j)    
-#K=12 could the elbow point
+    print "silhouette with " + j + " %i" % np.where(silhouette == np.max(silhouette))
+    print "Max Silhouette: {0:.3f}".format(np.max(silhouette))
+#silhouette with k-means++ 11
+#Max Silhouette: 0.158
+#silhouette with random 9
+#Max Silhouette: 0.157
 #Let's plot the data over plot 2-dimension
 #Visualize the results on PCA-reduced data    
 reduced_data = PCA(n_components=2).fit_transform(X)
-kmeans = KMeans(init='k-means++', n_clusters=12)
+kmeans = KMeans(init='k-means++', n_clusters=11)
 kmeans.fit(reduced_data)
 h = .02 
 x_min, x_max = reduced_data[:, 0].min() + 1, reduced_data[:, 0].max() - 1
