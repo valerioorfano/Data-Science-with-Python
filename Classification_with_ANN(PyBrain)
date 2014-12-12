@@ -1,1 +1,52 @@
-tbd
+#Artificial Neural Networks sing irisdata
+from pybrain.datasets import ClassificationDataSet
+from pybrain.tools.shortcuts import buildNetwork
+from pybrain.supervised.trainers import BackpropTrainer
+from pybrain.structure.modules import SoftmaxLayer
+from sklearn import datasets
+from sklearn.metrics import classification_report, confusion_matrix
+import numpy as np
+import random
+epoch = 2000
+# load the data from sklearn
+iris = datasets.load_iris()
+X = iris.data
+y = iris.target
+nclasses = len(np.unique(y))
+#fnn = buildNetwork(X.shape[1],10,nclasses,hiddenclass=TanhLayer, outclass=SoftmaxLayer, bias=True)
+# set up the dataset. 4 input features, 3 output classes
+alldata = ClassificationDataSet(X.shape[1], 1, nb_classes=nclasses)
+for i in range(X.shape[0]):
+    alldata.appendLinked(X[i,:], y[i])
+tstdata, trndata = alldata.splitWithProportion( 0.25 )    
+trndata._convertToOneOfMany( )
+tstdata._convertToOneOfMany( )
+print "Number of training patterns: ", len(trndata)
+print "Input and output dimensions: ", trndata.indim, trndata.outdim
+print "First sample (input, target, class):"
+print trndata['input'][0], trndata['target'][0], trndata['class'][0]
+
+fnn = buildNetwork(trndata.indim, 10, trndata.outdim, outclass = SoftmaxLayer)
+trainer = BackpropTrainer( module = fnn, dataset=trndata, momentum=0.1, verbose=True, weightdecay=0.01)
+
+#Train
+for i in range(epoch):
+    res = trainer.train()
+#Predict    
+out_prob = fnn.activateOnDataset(tstdata)
+out = out_prob.argmax(axis=1)  # the highest output activation gives the class
+print classification_report(tstdata['class'],out)
+print confusion_matrix(tstdata['class'],out)
+#With epoch=2000 we get no error classification. The best result we could obtain
+#             precision    recall  f1-score   support
+#
+#        0.0       1.00      1.00      1.00        11
+#        1.0       1.00      1.00      1.00        11
+#        2.0       1.00      1.00      1.00        15
+#
+#avg / total       1.00      1.00      1.00        37
+#
+#[[11  0  0]
+# [ 0 11  0]
+# [ 0  0 15]]
+
