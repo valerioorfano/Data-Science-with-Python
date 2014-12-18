@@ -1,0 +1,38 @@
+from pybrain.tools.shortcuts import buildNetwork
+from pybrain.structure import TanhLayer, SoftmaxLayer,LinearLayer, SigmoidLayer,FeedForwardNetwork, FullConnection
+from pybrain.datasets import SupervisedDataSet
+from pybrain.supervised.trainers import BackpropTrainer
+from pybrain.utilities import percentError
+from sklearn.metrics import confusion_matrix,accuracy_score,classification_report
+from sklearn.preprocessing import normalize, MinMaxScaler
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+np.set_printoptions(threshold='nan')
+df = []
+f = open("C:\Users\Administrator\Desktop\housing.data",'r')    
+line = f.read().split()
+for w in line:    
+    df = np.append(df,w)
+df = [float(x) for x in df]    
+df = np.array(df)
+df = df.reshape(df.shape[0]/14,14)    
+min_max_scaler = MinMaxScaler()
+df = min_max_scaler.fit_transform(df)
+X = df[:,0:13]
+y = df[:,13]
+alldata = SupervisedDataSet(13, 1)
+for i in range(X.shape[0]):
+    alldata.appendLinked(X[i,:],y[i])   
+tstdata, trndata = alldata.splitWithProportion( 0.25 )
+net = buildNetwork( trndata.indim, 13 , trndata.outdim, bias=True)
+trainer = BackpropTrainer(module=net,dataset=trndata, momentum=0.1, verbose=True, weightdecay=0.01)
+#trainer.trainEpochs (200)
+trainer.trainUntilConvergence(dataset=trndata)    
+out_tst = net.activateOnDataset(tstdata)
+out_trn = net.activateOnDataset(trndata)
+plt.figure()
+plt.scatter(trndata["target"],out_trn)
+plt.figure()
+plt.scatter(tstdata["target"],out_tst)
+plt.show()
