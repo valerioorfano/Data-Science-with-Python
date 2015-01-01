@@ -1,3 +1,5 @@
+#Wine Quality Classification using Negative Log Likelyhood Cost function
+
 from sklearn.metrics import classification_report
 import os,sys,time,numpy,theano,cPickle,gzip
 import theano.tensor as T
@@ -134,3 +136,170 @@ y_predicted = test_train()
 y = np.array(train_y.eval())    
 y_predicted = np.array(y_predicted)
 print zip(y,y_predicted)
+
+#if __name__ == '__main__':
+#    test_mlp()
+
+=============================================================================
+
+#Wine Quality Classification using Mean Square Error Cost function
+
+from sklearn.metrics import classification_report
+import os,sys,time,numpy,theano,cPickle,gzip
+import theano.tensor as T
+from sklearn.preprocessing import MinMaxScaler
+numpy.set_printoptions(threshold='nan')
+def load(file='/home/tom/Desktop/Files/'):
+    def preload(file):
+        data = numpy.zeros((1,12))
+        for name in ['winequality-red.csv','winequality-red.csv']:
+            filename = file +  name      
+            data_loc = np.loadtxt(filename, delimiter=';',skiprows=1 )
+            data = np.concatenate((data,data_loc),axis=0)
+        data = data[1:,:]  # remove first zero row    
+        label = data[:,11].copy().astype(int)
+        data = data[:,0:11]  # remove last column    
+        minmax = MinMaxScaler(feature_range=(0,1), copy=True)        
+        data = minmax.fit_transform(data)
+        return (data,label)    
+
+    def share_data(file):
+        data,label = preload(file)
+        x_share = theano.shared(numpy.array(data, dtype=theano.config.floatX),borrow=True)
+        y_share = theano.shared(numpy.array(label, dtype=theano.config.floatX),borrow=True)
+        return x_share, T.cast(y_share, 'int32')
+
+    x,y = share_data(file)
+    return x,y
+
+class Output(object):
+    def __init__(self, input, n_in, n_out):
+        self.W = theano.shared(value=numpy.zeros((n_in, n_out),dtype=theano.config.floatX),name='W',borrow=True)
+        self.b = theano.shared(value=numpy.zeros((n_out,),dtype=theano.config.floatX),name='b',borrow=True)
+        self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
+        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+        self.params = [self.W, self.b]
+
+    def negative_log_likelihood(self, y):
+        return 0.5 * T.mean((self.p_y_given_x - y)**2)
+#MSE     return 0.5 * T.mean((self.p_y_given_x[T.arange(y.shape[0]),y] -y)**2)
+#        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
+
+
+#    def errors(self, y):
+#        if y.ndim != self.y_pred.ndim:
+#            raise TypeError(
+#                'y should have the same shape as self.y_pred',
+#                ('y', y.type, 'y_pred', self.y_pred.type)
+#            )
+#        if y.dtype.startswith('int'):
+#            return T.mean(T.neq(self.y_pred, y))
+#        else:
+#            raise NotImplementedError()
+
+#    def one_hot(self,y):
+#        matrice = np.zeros((y.ndim,10))
+#        matrice[range(y.ndim),y] = 1.0        
+#        return matrice
+        
+class HiddenLayer(object):
+    def __init__(self, rng, input, n_in, n_out, W=None, b=None,activation=T.tanh):
+        self.input = input
+        if W is None:
+            W_values = numpy.asarray(rng.uniform(low=-numpy.sqrt(6. / (n_in + n_out)),high=numpy.sqrt(6. / (n_in + n_out)),
+                    size=(n_in, n_out)),dtype=theano.config.floatX)
+            if activation == theano.tensor.nnet.sigmoid:
+                W_values *= 4
+            W = theano.shared(value=W_values, name='W', borrow=True)
+        if b is None:
+            b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
+            b = theano.shared(value=b_values, name='b', borrow=True)
+        self.W = W
+        self.b = b
+        lin_output = T.dot(input, self.W) + self.b
+        self.output = (
+            lin_output if activation is None
+            else activation(lin_output)
+        )
+        self.params = [self.W, self.b]
+
+class MLP(object):
+    def __init__(self, rng, input, n_in, n_hidden, n_out):
+        self.hiddenLayer = HiddenLayer(rng=rng,input=input,n_in=n_in,n_out=n_hidden,activation=T.tanh)
+        self.Output = Output(input=self.hiddenLayer.output,n_in=n_hidden,n_out=n_out)
+        self.negative_log_likelihood = self.Output.negative_log_likelihood
+#        self.errors = self.Output.errors
+        self.params = self.hiddenLayer.params + self.Output.params
+        self.L1 = (abs(self.hiddenLayer.W).sum()+ abs(self.Output.W).sum())
+        self.L2_sqr = ((self.hiddenLayer.W ** 2).sum()+(self.Output.W ** 2).sum())
+
+
+#def gradient_updates_momentum(cost, params, learning_rate, momentum):
+#    assert momentum < 1 and momentum >= 0
+#    updates = []
+#    for param in params:
+#        param_update = theano.shared(param.get_value()*0., broadcastable=param.broadcastable)
+#        updates.append((param_update, momentum*param_update + (1. - momentum)*T.grad(cost, param)))        
+#        updates.append((param, param - learning_rate*param_update))
+#        updates.append((param_update, momentum*param_update + (1. - momentum)*T.grad(cost, param)))
+#    return updates
+
+def one_hot(y):
+    matrice = np.zeros((y.shape[0].eval(),10))
+    for i in range(y.shape[0].eval()): 
+        matrice[i,y.eval()[i]] = 1.0            
+    data = theano.shared(numpy.array(matrice, dtype=theano.config.floatX),borrow=True)    
+    return data    
+        
+
+#def test_mlp()
+learning_rate=0.01
+momentum = 0.9
+n_epochs=1000
+batch_size=20
+n_hidden=22
+L1_reg=0.00
+L2_reg=0.0001
+train_x, train_y = load()
+n_train_batches = train_x.shape.eval()[0] / batch_size
+matrice = one_hot(train_y)
+print '... building the model'
+
+index = T.lscalar()  # index to a [mini]batch
+x = T.matrix('x')  # the data is presented as rasterized images
+y = T.matrix('y')
+
+rng = numpy.random.RandomState(1234)
+classifier = MLP(rng=rng,input=x,n_in=11,n_hidden=n_hidden,n_out=10)
+cost = classifier.negative_log_likelihood(y)# + L1_reg * classifier.L1 + L2_reg * classifier.L2_sqr
+gparams = [T.grad(cost, param) for param in classifier.params]
+updates = [(param, param - learning_rate * gparam) for param, gparam in zip(classifier.params, gparams)]
+
+train_model = theano.function(inputs=[index],outputs=cost,updates=updates,givens={x: train_x[index * batch_size: (index + 1) * batch_size],y: one_hot(train_y)[index * batch_size: (index + 1) * batch_size]})
+#train_model = theano.function(inputs=[index],outputs=cost,updates=gradient_updates_momentum(cost, classifier.params, learning_rate, momentum),givens={x: train_x[index * batch_size: (index + 1) * batch_size],y: one_hot(train_y)[index * batch_size: (index + 1) * batch_size]})
+test_train = theano.function(inputs=[],outputs=classifier.Output.y_pred,givens={x: train_x})
+print '... training'
+start_time = time.clock()
+epoch = 0
+while (epoch < n_epochs):
+    epoch = epoch + 1
+    for minibatch_index in xrange(n_train_batches):
+        minibatch_avg_cost = train_model(minibatch_index)
+        print 'Total Cost %.6f' % minibatch_avg_cost
+
+end_time = time.clock()
+print 'ran for %.6f' % ((end_time - start_time) / 60.)
+    #Test the model
+print "Accuracy %.5f" % np.mean(test_train() == train_y.eval())    
+y_predicted = test_model()
+y = np.array(test_y.eval())    
+y_predicted = np.array(y_predicted)
+print zip(y,y_predicted)
+y_predicted = test_train()
+y = np.array(train_y.eval())    
+y_predicted = np.array(y_predicted)#print zip(y,y_predicted)
+
+#if __name__ == '__main__':
+#    test_mlp()
+
+
